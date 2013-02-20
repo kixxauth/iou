@@ -1,4 +1,4 @@
-function newDefer() {
+exports.newDefer = function newDefer() {
     var self = {}
       , PENDING = 'pending'
       , KEPT = 'kept'
