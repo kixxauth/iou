@@ -84,9 +84,9 @@ exports.newDefer = function newDefer() {
             var deferred = newDefer()
               , wrapped = wrapHandler(next, deferred)
 
-            if (status === 'pending') {
+            if (status === PENDING) {
                 keeperQueue(wrapped);
-            } else {
+            } else if (status === KEPT) {
                 wrapped(knownFate);
             }
             return deferred.promise;
@@ -96,9 +96,9 @@ exports.newDefer = function newDefer() {
             var deferred = newDefer()
               , wrapped = wrapHandler(handler, deferred)
 
-            if (status === 'pending') {
+            if (status === PENDING) {
                 failureQueue(wrapped);
-            } else {
+            } else if (status === FAILED) {
                 wrapped(knownFate);
             }
             return deferred.promise;
