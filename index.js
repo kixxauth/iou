@@ -55,13 +55,21 @@ exports.newDefer = function newDefer() {
     };
 
     self.promise = {
-        then: function (next) {
+        isPromise: true
+
+      , then: function (next) {
             var deferred = newDefer()
 
             if (status === PENDING) {
                 keeperQueue(function (val) {
                     process.nextTick(function () {
-                        deferred.keep(next(val));
+                        var rv = next(val);
+                        if (rv && rv.isPromise) {
+                            rv.then(deferred.keep);
+                            rv.failure(deferred.fail);
+                        } else {
+                            deferred.keep(rv);
+                        }
                     });
                 });
                 failureQueue(function (err) {
@@ -86,7 +94,13 @@ exports.newDefer = function newDefer() {
             if (status === PENDING) {
                 failureQueue(function (err) {
                     process.nextTick(function () {
-                        deferred.keep(handler(err));
+                        var rv = handler(err);
+                        if (rv && rv.isPromise) {
+                            rv.then(deferred.keep);
+                            rv.failure(deferred.fail);
+                        } else {
+                            deferred.keep(rv);
+                        }
                     });
                 });
                 keeperQueue(function (val) {
@@ -106,5 +120,6 @@ exports.newDefer = function newDefer() {
         }
     };
 
+    Object.freeze(self.promise);
     return self;
 }

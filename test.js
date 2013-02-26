@@ -15,6 +15,8 @@ tests.push(function (done) {
       , promise3
 
     // Check duck typing for the returned promise.
+    assert(Object.isFrozen(promise), 'promise is frozen');
+    equal(promise.isPromise, true, 'promise.isPromise');
     equal(type(promise.then), FUNCT, 'promise.then is a function');
     equal(type(promise.failure), FUNCT, 'promise.failure is a function');
 
@@ -24,8 +26,13 @@ tests.push(function (done) {
     notEqual(promise, promise2, 'promise !== promise2');
     notEqual(promise2, promise3, 'promise2 !== promise3');
 
+    assert(Object.isFrozen(promise2), 'promise2 is frozen');
+    equal(promise2.isPromise, true, 'promise2.isPromise');
     equal(type(promise2.then), FUNCT, 'promise2.then is a function');
     equal(type(promise2.failure), FUNCT, 'promise2.failure is a function');
+
+    assert(Object.isFrozen(promise3), 'promise3 is frozen');
+    equal(promise3.isPromise, true, 'promise3.isPromise');
     equal(type(promise3.then), FUNCT, 'promise3.then is a function');
     equal(type(promise3.failure), FUNCT, 'promise3.failure is a function');
     return done();
@@ -383,6 +390,35 @@ tests.push(function (done) {
     }
 
     d.promise.failure(neverCalled).then(continueOn);
+});
+
+tests.push(function (done) {
+    "A then() handler can return a promise for a value.";
+
+    var d = IOU.newDefer()
+      , err = new Error('some err')
+      , val = {}
+
+    function returnPromise() {
+        return IOU.newDefer().fail(err).promise;
+    }
+
+    function handleFailure(e) {
+        wrapAssertion(function () {
+            equal(e, err, 'e is err');
+        });
+        return IOU.newDefer().keep(val).promise;
+    }
+
+    function continueOn(v) {
+        wrapAssertion(function () {
+            equal(v, val, 'v is val');
+        });
+        return done();
+    }
+
+    d.promise.then(returnPromise).failure(handleFailure).then(continueOn);
+    d.keep(1);
 });
 
 // End of testing.
