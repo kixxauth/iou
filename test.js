@@ -393,7 +393,7 @@ tests.push(function (done) {
 });
 
 tests.push(function (done) {
-    "A then() handler can return a promise for a value.";
+    "Handlers can return a promise for a value.";
 
     var d = IOU.newDefer()
       , err = new Error('some err')
@@ -418,6 +418,59 @@ tests.push(function (done) {
     }
 
     d.promise.then(returnPromise).failure(handleFailure).then(continueOn);
+    d.keep(1);
+});
+
+tests.push(function (done) {
+    "Handlers can throw and catch errors.";
+    var d = IOU.newDefer()
+      , val = {}
+      , err1 = new Error('err 2')
+      , err2 = new Error('err 3')
+
+    function throw1() {
+        throw err1;
+    }
+
+    function catch1(e) {
+        wrapAssertion(function () {
+            equal(e, err1, 'e is err1');
+        });
+        throw err2;
+    }
+
+    function catch2(e) {
+        wrapAssertion(function () {
+            equal(e, err2, 'e is err2');
+        });
+        return val;
+    }
+
+    function continueOn(v) {
+        wrapAssertion(function () {
+            equal(v, val, 'v is val');
+        });
+        return done();
+    }
+
+    function neverCall(name) {
+        return function () {
+            wrapAssertion(function () {
+                assert(false, name +' should not be called.');
+            });
+        };
+    }
+
+    d.promise
+        .then(throw1)
+        .failure(catch1)
+        .then(neverCall('second'))
+        .failure(catch2)
+        .failure(neverCall('third'))
+        .then(continueOn);
+
+    d.promise.failure(neverCall('first'))
+
     d.keep(1);
 });
 

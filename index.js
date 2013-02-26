@@ -63,7 +63,12 @@ exports.newDefer = function newDefer() {
             if (status === PENDING) {
                 keeperQueue(function (val) {
                     process.nextTick(function () {
-                        var rv = next(val);
+                        try {
+                            var rv = next(val);
+                        } catch (e) {
+                            deferred.fail(e);
+                            return;
+                        }
                         if (rv && rv.isPromise) {
                             rv.then(deferred.keep);
                             rv.failure(deferred.fail);
@@ -94,7 +99,12 @@ exports.newDefer = function newDefer() {
             if (status === PENDING) {
                 failureQueue(function (err) {
                     process.nextTick(function () {
-                        var rv = handler(err);
+                        try {
+                            var rv = handler(err);
+                        } catch (e) {
+                            deferred.fail(e);
+                            return;
+                        }
                         if (rv && rv.isPromise) {
                             rv.then(deferred.keep);
                             rv.failure(deferred.fail);
