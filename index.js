@@ -5,10 +5,10 @@ exports.newDefer = function newDefer() {
       , FAILED = 'failed'
       , status = PENDING
       , knownFate
-      , keeperQueue = newQueue()
-      , failureQueue = newQueue()
+      , keeperQueue = newQueue('keepers')
+      , failureQueue = newQueue('failures')
 
-    function newQueue() {
+    function newQueue(name) {
         var q = []
 
         function queue(wrapped) {
@@ -38,35 +38,10 @@ exports.newDefer = function newDefer() {
         knownFate = val;
 
         if (status === KEPT) {
-            keeperQueue.commit(val);
+            keeperQueue.commit(knownFate);
         } else {
-            failureQueue.commit(val);
+            failureQueue.commit(knownFate);
         }
-    }
-
-    function wrapHandler(handler, deferred) {
-        function wrappedHandler(val) {
-            process.nextTick(newWrapper(handler, deferred, val));
-        }
-        return wrappedHandler;
-    }
-
-    function newWrapper(handler, deferred, val) {
-        function nextLayer() {
-            try {
-                var result = handler(val);
-                if (result && result.isPromise === true) {
-                    result.then(deferred.keep);
-                    result.failure(deferred.fail);
-                } else {
-                    deferred.keep(result);
-                }
-            } catch (err) {
-                deferred.fail(err);
-            }
-        }
-
-        return nextLayer;
     }
 
     self.keep = function (val) {
@@ -82,25 +57,51 @@ exports.newDefer = function newDefer() {
     self.promise = {
         then: function (next) {
             var deferred = newDefer()
-              , wrapped = wrapHandler(next, deferred)
 
             if (status === PENDING) {
-                keeperQueue(wrapped);
+                keeperQueue(function (val) {
+                    process.nextTick(function () {
+                        deferred.keep(next(val));
+                    });
+                });
+                failureQueue(function (err) {
+                    process.nextTick(function () {
+                        deferred.fail(err);
+                    });
+                });
             } else if (status === KEPT) {
-                wrapped(knownFate);
+                process.nextTick(function () {
+                    deferred.keep(next(knownFate));
+                });
+            } else {
+                deferred.fail(knownFate);
             }
+
             return deferred.promise;
         }
 
       , failure: function (handler) {
             var deferred = newDefer()
-              , wrapped = wrapHandler(handler, deferred)
 
             if (status === PENDING) {
-                failureQueue(wrapped);
+                failureQueue(function (err) {
+                    process.nextTick(function () {
+                        deferred.keep(handler(err));
+                    });
+                });
+                keeperQueue(function (val) {
+                    process.nextTick(function () {
+                        deferred.keep(val);
+                    });
+                });
             } else if (status === FAILED) {
-                wrapped(knownFate);
+                process.nextTick(function () {
+                    deferred.keep(handler(knownFate));
+                });
+            } else {
+                deferred.keep(knownFate);
             }
+
             return deferred.promise;
         }
     };
