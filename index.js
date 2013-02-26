@@ -69,7 +69,9 @@ exports.newDefer = function newDefer() {
                             deferred.fail(e);
                             return;
                         }
-                        if (rv && rv.isPromise) {
+                        if (rv && rv instanceof Error) {
+                            deferred.fail(rv);
+                        } else if (rv && rv.isPromise) {
                             rv.then(deferred.keep);
                             rv.failure(deferred.fail);
                         } else {
@@ -105,7 +107,9 @@ exports.newDefer = function newDefer() {
                             deferred.fail(e);
                             return;
                         }
-                        if (rv && rv.isPromise) {
+                        if (rv && rv instanceof Error) {
+                            deferred.fail(rv);
+                        } else if (rv && rv.isPromise) {
                             rv.then(deferred.keep);
                             rv.failure(deferred.fail);
                         } else {
