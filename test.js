@@ -393,45 +393,60 @@ tests.push(function (done) {
 });
 
 tests.push(function (done) {
-    "Handlers can return a promise for a value.";
+    "Handlers can return a promise for a value. (async)";
 
     var d = IOU.newDefer()
       , err = new Error('some err')
       , val = {}
 
+    process.nextTick(function () {
+        d.keep(1);
+    });
+
     function returnPromise() {
+        // Return a promise which has already been resolved.
         return IOU.newDefer().fail(err).promise;
     }
 
     function handleFailure(e) {
         wrapAssertion(function () {
+            // Proxied promises are resolved by the time they are passed to the
+            // handlers.
             equal(e, err, 'e is err');
         });
+        // Return another promise which has already been resolved.
         return IOU.newDefer().keep(val).promise;
     }
 
     function continueOn(v) {
         wrapAssertion(function () {
+            // Proxied promises are resolved by the time they are passed to the
+            // handlers.
             equal(v, val, 'v is val');
         });
         return done();
     }
 
     d.promise.then(returnPromise).failure(handleFailure).then(continueOn);
-    d.keep(1);
 });
 
 tests.push(function (done) {
-    "Handlers can throw and catch errors.";
+    "Handlers can throw and catch errors. (async)";
+
     var d = IOU.newDefer()
       , val = {}
       , err1 = new Error('err 2')
       , err2 = new Error('err 3')
 
+    process.nextTick(function () {
+        d.keep(1);
+    });
+
     function throw1() {
         throw err1;
     }
 
+    // .failure() handler
     function catch1(e) {
         wrapAssertion(function () {
             equal(e, err1, 'e is err1');
@@ -439,10 +454,12 @@ tests.push(function (done) {
         throw err2;
     }
 
+    // .failure() handler
     function catch2(e) {
         wrapAssertion(function () {
             equal(e, err2, 'e is err2');
         });
+        // Recover from the error.
         return val;
     }
 
@@ -461,6 +478,7 @@ tests.push(function (done) {
         };
     }
 
+    // .then() handlers are not called when a promise layer has failed.
     d.promise
         .then(throw1)
         .failure(catch1)
@@ -470,21 +488,84 @@ tests.push(function (done) {
         .then(continueOn);
 
     d.promise.failure(neverCall('first'))
-
-    d.keep(1);
 });
 
 tests.push(function (done) {
-    "Handlers can return and catch errors.";
+    "Handlers can throw and catch errors.";
+
     var d = IOU.newDefer()
       , val = {}
       , err1 = new Error('err 2')
       , err2 = new Error('err 3')
 
+    d.keep(1);
+
+    function throw1() {
+        throw err1;
+    }
+
+    // .failure() handler
+    function catch1(e) {
+        wrapAssertion(function () {
+            equal(e, err1, 'e is err1');
+        });
+        throw err2;
+    }
+
+    // .failure() handler
+    function catch2(e) {
+        wrapAssertion(function () {
+            equal(e, err2, 'e is err2');
+        });
+        // Recover from the error.
+        return val;
+    }
+
+    function continueOn(v) {
+        wrapAssertion(function () {
+            equal(v, val, 'v is val');
+        });
+        return done();
+    }
+
+    function neverCall(name) {
+        return function () {
+            wrapAssertion(function () {
+                assert(false, name +' should not be called.');
+            });
+        };
+    }
+
+    // .then() handlers are not called when a promise layer has failed.
+    d.promise
+        .then(throw1)
+        .failure(catch1)
+        .then(neverCall('second'))
+        .failure(catch2)
+        .failure(neverCall('third'))
+        .then(continueOn);
+
+    d.promise.failure(neverCall('first'))
+});
+
+tests.push(function (done) {
+    "Handlers can return and catch errors. (async)";
+
+    var d = IOU.newDefer()
+      , val = {}
+      , err1 = new Error('err 2')
+      , err2 = new Error('err 3')
+
+    process.nextTick(function () {
+        d.keep(1);
+    });
+
     function return1() {
+        // Return an Error object.
         return err1;
     }
 
+    // .failure() handler
     function catch1(e) {
         wrapAssertion(function () {
             equal(e, err1, 'e is err1');
@@ -492,10 +573,12 @@ tests.push(function (done) {
         return err2;
     }
 
+    // .failure() handler
     function catch2(e) {
         wrapAssertion(function () {
             equal(e, err2, 'e is err2');
         });
+        // Recover from the error.
         return val;
     }
 
@@ -514,6 +597,7 @@ tests.push(function (done) {
         };
     }
 
+    // .then() handlers are not called when a promise layer has failed.
     d.promise
         .then(return1)
         .failure(catch1)
@@ -524,20 +608,86 @@ tests.push(function (done) {
 
     d.promise.failure(neverCall('first'))
 
-    d.keep(1);
 });
 
 tests.push(function (done) {
-    "Handlers can return and catch promises for errors.";
+    "Handlers can return and catch errors.";
+
     var d = IOU.newDefer()
       , val = {}
       , err1 = new Error('err 2')
       , err2 = new Error('err 3')
 
+    d.keep(1);
+
     function return1() {
+        // Return an Error object.
+        return err1;
+    }
+
+    // .failure() handler
+    function catch1(e) {
+        wrapAssertion(function () {
+            equal(e, err1, 'e is err1');
+        });
+        return err2;
+    }
+
+    // .failure() handler
+    function catch2(e) {
+        wrapAssertion(function () {
+            equal(e, err2, 'e is err2');
+        });
+        // Recover from the error.
+        return val;
+    }
+
+    function continueOn(v) {
+        wrapAssertion(function () {
+            equal(v, val, 'v is val');
+        });
+        return done();
+    }
+
+    function neverCall(name) {
+        return function () {
+            wrapAssertion(function () {
+                assert(false, name +' should not be called.');
+            });
+        };
+    }
+
+    // .then() handlers are not called when a promise layer has failed.
+    d.promise
+        .then(return1)
+        .failure(catch1)
+        .then(neverCall('second'))
+        .failure(catch2)
+        .failure(neverCall('third'))
+        .then(continueOn);
+
+    d.promise.failure(neverCall('first'))
+
+});
+
+tests.push(function (done) {
+    "Handlers can return and catch promises for errors. (async)";
+
+    var d = IOU.newDefer()
+      , val = {}
+      , err1 = new Error('err 2')
+      , err2 = new Error('err 3')
+
+    process.nextTick(function () {
+        d.keep(1);
+    });
+
+    function return1() {
+        // Return a failed promise.
         return IOU.newDefer().fail(err1).promise;
     }
 
+    // .failure() handler
     function catch1(e) {
         wrapAssertion(function () {
             equal(e, err1, 'e is err1');
@@ -545,10 +695,12 @@ tests.push(function (done) {
         return IOU.newDefer().fail(err2).promise;
     }
 
+    // .failure() handler
     function catch2(e) {
         wrapAssertion(function () {
             equal(e, err2, 'e is err2');
         });
+        // Recover from the error.
         return val;
     }
 
@@ -567,6 +719,7 @@ tests.push(function (done) {
         };
     }
 
+    // .then() handlers are not called when a promise layer has failed.
     d.promise
         .then(return1)
         .failure(catch1)
@@ -576,12 +729,72 @@ tests.push(function (done) {
         .then(continueOn);
 
     d.promise.failure(neverCall('first'))
+});
+
+tests.push(function (done) {
+    "Handlers can return and catch promises for errors.";
+
+    var d = IOU.newDefer()
+      , val = {}
+      , err1 = new Error('err 2')
+      , err2 = new Error('err 3')
 
     d.keep(1);
+
+    function return1() {
+        // Return a failed promise.
+        return IOU.newDefer().fail(err1).promise;
+    }
+
+    // .failure() handler
+    function catch1(e) {
+        wrapAssertion(function () {
+            equal(e, err1, 'e is err1');
+        });
+        return IOU.newDefer().fail(err2).promise;
+    }
+
+    // .failure() handler
+    function catch2(e) {
+        wrapAssertion(function () {
+            equal(e, err2, 'e is err2');
+        });
+        // Recover from the error.
+        return val;
+    }
+
+    function continueOn(v) {
+        wrapAssertion(function () {
+            equal(v, val, 'v is val');
+        });
+        return done();
+    }
+
+    function neverCall(name) {
+        return function () {
+            wrapAssertion(function () {
+                assert(false, name +' should not be called.');
+            });
+        };
+    }
+
+    // .then() handlers are not called when a promise layer has failed.
+    d.promise
+        .then(return1)
+        .failure(catch1)
+        .then(neverCall('second'))
+        .failure(catch2)
+        .failure(neverCall('third'))
+        .then(continueOn);
+
+    d.promise.failure(neverCall('first'))
 });
 
 // End of testing.
 tests.push(function () { console.log('PASSED'); });
+
+
+// ---
 
 
 // Helpers
