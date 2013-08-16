@@ -20,7 +20,7 @@ which will install iou in your `node_modules/` folder.
 ## Testing
 To run the tests, just do
 
-	node test.js
+	./manage test
 
 You should see 'PASSED' as the only output. Any failed tests will output an
 error message and halt execution. If you don't see anything, that means the
