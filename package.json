@@ -1,6 +1,6 @@
 {
 	"name": "iou",
-	"version": "0.2.0",
+	"version": "0.3.0",
 	"description": "A JavaScript promise API.",
 	"author": "Kris Walker <kris@kixx.name> (http://www.kixx.name/)",
 	"keywords": ["iou","promise","promises", "async","defer","deferred","deferreds","future","futures"],

@@ -125,7 +125,29 @@ exports.newDefer = function newDefer() {
   // also to protect the .isPromise flag.
   Object.freeze(self.promise);
   return self;
-}
+};
+
+exports.waitFor = function waitFor(promises) {
+  if (!Array.isArray(promises)) {
+    promises = Array.prototype.slice.call(arguments);
+  }
+
+  var deferred = exports.newDefer()
+    , values = []
+    , count = 0
+    , expected = promises.length
+
+  promises.forEach(function (promise, index) {
+    promise.then(function (val) {
+      values[index] = val;
+      if ((count += 1) === expected) {
+        deferred.keep(values);
+      }
+    }, deferred.fail);
+  });
+
+  return deferred.promise
+};
 
 
 // Create a new function queue. This returns a function, which accepts a

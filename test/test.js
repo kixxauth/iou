@@ -890,7 +890,7 @@ exports["Handlers can return and catch promises for errors (sync)."] = function 
   function neverCall(name) {
       return function () {
           wrapAssertion(function () {
-              assert(false, name +' should not be called.');
+              test.ok(false, name +' should not be called.');
           });
       };
   }
@@ -905,6 +905,86 @@ exports["Handlers can return and catch promises for errors (sync)."] = function 
       .then(continueOn);
 
   d.promise.failure(neverCall('first'))
+};
+
+exports["can aggregate promises with IOU.waitFor()"] = function (test) {
+  test.expect(3);
+
+  var d1 = IOU.newDefer()
+    , d2 = IOU.newDefer()
+    , d3 = IOU.newDefer()
+    , v1 = {}
+    , v2 = {}
+    , v3 = {}
+
+  var promise = IOU.waitFor(d1.promise, d2.promise, d3.promise);
+
+  promise.then(function (values) {
+    test.strictEqual(values[0], v1, 'value 1');
+    test.strictEqual(values[1], v2, 'value 2');
+    test.strictEqual(values[2], v3, 'value 3');
+    test.done();
+  });
+
+  d2.keep(v2);
+  d1.keep(v1);
+  d3.keep(v3);
+};
+
+exports["can aggregate promises with IOU.waitFor() when resolved"] = function (test) {
+  test.expect(3);
+
+  var d1 = IOU.newDefer()
+    , d2 = IOU.newDefer()
+    , d3 = IOU.newDefer()
+    , v1 = {}
+    , v2 = {}
+    , v3 = {}
+
+  d2.keep(v2);
+  d1.keep(v1);
+  d3.keep(v3);
+
+  var promise = IOU.waitFor(d1.promise, d2.promise, d3.promise);
+
+  promise.then(function (values) {
+    wrapAssertion(function () {
+      test.strictEqual(values[0], v1, 'value 1');
+      test.strictEqual(values[1], v2, 'value 2');
+      test.strictEqual(values[2], v3, 'value 3');
+    })
+    test.done();
+  }, function () {
+    wrapAssertion(function () {
+      test.ok(false, "Failure handler should never be called.")
+    });
+  });
+};
+
+exports["IOU.waitFor() fires the error handler on first failure"] = function (test) {
+  test.expect(1);
+
+  var d1 = IOU.newDefer()
+    , d2 = IOU.newDefer()
+    , d3 = IOU.newDefer()
+    , err = new Error('test_error')
+
+  var promise = IOU.waitFor([d1.promise, d2.promise, d3.promise]);
+
+  promise.then(function (values) {
+    wrapAssertion(function () {
+      test.ok(false, "success handler should never be called.")
+    })
+  }, function (e) {
+    wrapAssertion(function () {
+      test.strictEqual(e, err, "passed Error")
+    });
+    test.done();
+  });
+
+  d1.keep();
+  d2.fail(err);
+  d3.keep();
 };
 
 
