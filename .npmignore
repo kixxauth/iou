@@ -1,0 +1,3 @@
+bin/run_tests.js
+manage.sh
+test/**
