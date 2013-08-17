@@ -29,6 +29,137 @@ exports["newDefer().promise is a promise object"] = function (test) {
   return test.done();
 };
 
+exports["second argument to promise.then() is layer failure handler"] = function (test) {
+  test.expect(1);
+
+  var d = IOU.newDefer()
+
+  function failure() {
+    wrapAssertion(function () {
+      test.ok(true, "failure should be called.")
+    });
+  }
+
+  function neverCalled(name) {
+    return function () {
+      wrapAssertion(function () {
+        test.ok(false, name +" should not be called");
+      });
+    };
+  }
+
+  d.promise
+    .then(neverCalled('success'), failure)
+    .failure(neverCalled('failure'))
+    .then(function () {
+      test.done();
+    })
+
+  process.nextTick(function () {
+    d.fail();
+  });
+};
+
+exports["second argument to promise.then() triggered after resolution"] = function (test) {
+  test.expect(1);
+
+  var d = IOU.newDefer()
+
+  function failure() {
+    wrapAssertion(function () {
+      test.ok(true, "failure should be called.")
+    });
+  }
+
+  function neverCalled(name) {
+    return function () {
+      wrapAssertion(function () {
+        test.ok(false, name +" should not be called");
+      });
+    };
+  }
+
+  d.fail()
+
+  d.promise
+    .then(neverCalled('success'), failure)
+    .failure(neverCalled('failure'))
+    .then(function () { test.done(); })
+};
+
+exports["an error in promise.then(success) is not caught by then(failure)"] = function (test) {
+  test.expect(2);
+
+  var d = IOU.newDefer()
+    , val = {}
+    , err = new Error("t1")
+
+  function throwError() {
+    throw err;
+  }
+
+  function handleError(e) {
+    test.strictEqual(e, err, "e is Error");
+    return val;
+  }
+
+  function end(v) {
+    test.strictEqual(v, val, "v is value");
+    test.done();
+  }
+
+  function skipped(name) {
+    return function () {
+      wrapAssertion(function () {
+        test.ok(false, name +" should not be called");
+      });
+    };
+  }
+
+  d.promise
+    .then(throwError, skipped('failure'))
+    .then(skipped('success'), handleError)
+    .then(end)
+
+  process.nextTick(function () {
+    d.keep(1);
+  })
+};
+
+exports["a failure is caught by then(failure)"] = function (test) {
+  test.expect(2);
+
+  var d = IOU.newDefer()
+    , val = {}
+    , err = new Error("t1")
+
+  function handleError(e) {
+    test.strictEqual(e, err, "e is Error");
+    return val;
+  }
+
+  function end(v) {
+    test.strictEqual(v, val, "v is value");
+    test.done();
+  }
+
+  function skipped(name) {
+    return function () {
+      wrapAssertion(function () {
+        test.ok(false, name +" should not be called");
+      });
+    };
+  }
+
+  d.promise
+    .then(skipped('success'), handleError)
+    .then(end, skipped('failure'))
+
+  process.nextTick(function () {
+    d.fail(err);
+  })
+};
+
 exports["newDefer().keep() resolves once and only once"] = function (test) {
   test.expect(1);
 
