@@ -6,7 +6,8 @@
 	"keywords": ["iou","promise","promises", "async","defer","deferred","deferreds","future","futures"],
 	"repository": {"type":"git", "url":"https://github.com/kixxauth/iou.git"},
 	"bugs": "https://github.com/kixxauth/iou/issues",
-    "dependencies": {
-        "nodeunit": "0.8.1"
+    "devDependencies": {
+        "nodeunit": "0.8.1",
+        "promises-aplus-tests": "2.0.3"
     }
 }

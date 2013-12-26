@@ -45,6 +45,7 @@ setup () {
 run_tests () {
     setup
     node $BASE/bin/run_tests.js test/
+    $BASE/node_modules/.bin/promises-aplus-tests test/aplus-adapter.js
 }
 
 clean () {
