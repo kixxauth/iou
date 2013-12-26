@@ -5,7 +5,27 @@ function Promise(block) {
   if (typeof block !== 'function') {
     throw new TypeError("You must pass a resolver function as the first argument to the promise constructor.");
   }
+
+  var deferred = exports.newDefer()
+
+  block(deferred.keep, deferred.fail);
+
+  return deferred.promise;
 }
+
+Promise.resolve = function (value) {
+  var promise = new Promise(function (resolve, reject) {
+    resolve(value);
+  });
+  return promise;
+};
+
+Promise.reject = function (error) {
+  var promise = new Promise(function (resolve, reject) {
+    reject(error);
+  });
+  return promise;
+};
 
 exports.Promise = Promise;
 
