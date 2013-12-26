@@ -56,12 +56,9 @@ function die(err) {
 // and the Error you passed into reject() will get passed to die().
 readmePromise.then(printText, die);
 
-// We can improve this even more:
-
+// We can improve this even more. By passing console.log as the success
+// handler, we don't even need our printText() function.
 readmePromise.then(console.log, die);
-
-// By passing console.log as the success handler, we don't even need our
-// printText() function.
 ```
 
 Promises become super powerful in JavaScript when we need to compose a series
@@ -81,7 +78,7 @@ function printWordCount(path) {
     .catch(die)
 
   // If any errors are thrown in any of the functions in the chain, or if any
-  // of them rejects a promise, then `catch(die)` will catch and handle them.
+  // of them rejects a promise, `catch(die)` will catch and handle them.
 }
 
 function readFile(path) {
@@ -145,8 +142,8 @@ parameter `onReject(err)` will be passed the rejected Error of the promise if
 it ends up getting rejected.
 
 If you only care about rejections, you can pass `null` in place of
-`onResolve()`, and if you want skip handling rejections then don't pass in the
-`onReject()` handler at all.
+`onResolve()`, and if you want to skip handling rejections then don't pass in
+the `onReject()` handler at all.
 
 The `then()` method returns the promise, so you can chain it to compose a
 sequence of actions, which is really powerful.
@@ -175,8 +172,10 @@ This is really just an alias for `then(null, onReject)`. This is a pattern that
 is good to use, since it catches any possible thrown errors or rejected promises
 that have not been handled in the chain.
 ```JavaScript
+	// Simple use:
   promise.then(console.log).catch(console.error);
 
+	// A global error handler.
   function die(err) {
     console.error(err.stack);
     process.exit(1);
@@ -200,7 +199,12 @@ that have not been handled in the chain.
 ```
 
 ### Promise.resolve()
+Sometimes you need to simply pass back a promise from a normal synchronous
+function instead of a value.  That's what the `Promise.resolve()` class method
+allows you to do.
 ```JavaScript
+// This function does not perform any asynchronous operations, but could be
+// used in a promise.then() chain if we return a promise instance.
 function getDaysInYear() {
   return IOU.Promise.resolve(365);
 }
@@ -209,6 +213,10 @@ getDaysInYear().then(otherThing).catch(errorHandler);
 ```
 
 ### Promise.reject()
+Other times you need to turn an error into a rejection. That's what the
+`Promise.reject()` class method is used for. This is particularly useful in a
+resolved handler, where the rejection will get passed to the next rejection
+handler.
 ```JavaScript
 function catchEmptyFile(text) {
   if (!text) {
@@ -235,12 +243,19 @@ promise.then(catchEmptyFile).then(console.log).catch(die);
 ```
 
 ### Promise.all()
+The `Promise.all()` class method collects an array of promises and returns a
+new promise that will only be resolved if all of the promises resolve. If any
+one of them rejects, then the new promise returned by Promise.all() will reject
+with the first rejection.
+
+Normal non-Promise values can also be passed in the array to `Promise.all()`
+and they will be casted to a Promise instance.
 ```JavaScript
 function printAll(texts) {
   console.log.call(console, texts);
 }
 
-var promises = [readFile('./config.yaml'), readFile('/etc/config.yaml'), readFile('/home/kris/config.yaml')]
+var promises = [readFile('./config.yaml'), "host: localhost", readFile('/home/kris/config.yaml')]
 IOU.Promise.all(promises).then(printAll).catch(die);
 ```
 
