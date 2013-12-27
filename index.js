@@ -7,18 +7,23 @@ function Promise(block) {
   var deferred = newDefer(this)
 
   this.then = function (onFulfilled, onRejected) {
+    var resolveNext, rejectNext
+
     var promise = new Promise(function (resolve, reject) {
-      if (typeof onFulfilled === 'function') {
-        deferred.onFulfilled(wrapHandler(onFulfilled, promise, resolve, reject));
-      } else {
-        deferred.onFulfilled(wrapProxy(resolve));
-      }
-      if (typeof onRejected === 'function') {
-        deferred.onRejected(wrapHandler(onRejected, promise, resolve, reject));
-      } else {
-        deferred.onRejected(wrapProxy(reject));
-      }
+      resolveNext = resolve;
+      rejectNext = reject;
     });
+
+    if (typeof onFulfilled === 'function') {
+      deferred.onFulfilled(wrapHandler(onFulfilled, promise, resolveNext, rejectNext));
+    } else {
+      deferred.onFulfilled(wrapProxy(resolveNext));
+    }
+    if (typeof onRejected === 'function') {
+      deferred.onRejected(wrapHandler(onRejected, promise, resolveNext, rejectNext));
+    } else {
+      deferred.onRejected(wrapProxy(rejectNext));
+    }
 
     return promise;
   };
@@ -113,5 +118,40 @@ function wrapProxy(next) {
 }
 
 function commitPromise(promise, resolve, reject, x) {
+  if (x === promise) {
+    reject(new TypeError("promise === x"));
+    return;
+  }
+  if (x instanceof Promise) {
+    x.then(resolve, reject);
+    return;
+  }
+  if (x && (typeof x === 'object' || typeof x === 'function')) {
+    var then, resolved = false
+
+    try {
+      then = x.then;
+    } catch (err) {
+      reject(err);
+      return;
+    }
+
+    if (typeof then === 'function') {
+      try {
+        then.call(x, function (y) {
+          if (resolved) return;
+          resolved = true;
+          commitPromise(promise, resolve, reject, y);
+        }, function (r) {
+          if (resolved) return;
+          resolved = true;
+          reject(r);
+        });
+      } catch (err) {
+        if (!resolved) reject(err);
+      }
+      return;
+    }
+  }
   resolve(x);
 }
