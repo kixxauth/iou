@@ -5,6 +5,7 @@ var FULFILLED = 'fulfilled'
 
 function Promise(block) {
   var deferred = newDefer(this)
+  this.deferred = deferred;
 
   this.then = function (onFulfilled, onRejected) {
     var resolveNext, rejectNext
@@ -32,15 +33,17 @@ function Promise(block) {
 }
 
 Promise.resolve = function (value) {
-  return new Promise(function (resolve, reject) {
+  var promise = new Promise(function (resolve, reject) {
     resolve(value);
   });
+  return promise;
 };
 
 Promise.reject = function (error) {
-  return new Promise(function (resolve, reject) {
+  var promise = new Promise(function (resolve, reject) {
     reject(error);
   });
+  return promise;
 };
 
 function newDefer(promise) {
@@ -50,8 +53,44 @@ function newDefer(promise) {
     , fulfillmentHandlers = []
     , rejectionHandlers = []
 
-  self.resolve = function (value) {
-    process.nextTick(function () {
+  self.id = uid();
+
+  self.valueOf = function deferred_valueOf() {
+    return knownFate;
+  };
+
+  self.status = function deferred_status() {
+    return status;
+  };
+
+  self.resolve = function deferred_resolve(value) {
+    if (value && (typeof value === 'object' || typeof value === 'function')) {
+      var then, resolved = false
+      try {
+        then = value.then;
+      } catch (err) {
+        self.reject(err);
+        return;
+      }
+      if (typeof then === 'function') {
+        try {
+          then.call(value, function resolvePromise(y) {
+            if (resolved) return;
+            resolved = true;
+            self.resolve(y);
+          }, function rejectPromise(r) {
+            if (resolved) return;
+            resolved = true;
+            self.reject(r);
+          });
+        } catch (err) {
+          if (!resolved) self.reject(err);
+        }
+        return;
+      }
+    }
+
+    process.nextTick(function resolveNextTick() {
       if (status !== PENDING) return;
       status = FULFILLED;
       knownFate = value;
@@ -61,8 +100,8 @@ function newDefer(promise) {
     });
   };
 
-  self.reject = function (error) {
-    process.nextTick(function () {
+  self.reject = function deferred_reject(error) {
+    process.nextTick(function rejectNextTick() {
       if (status !== PENDING) return;
       status = REJECTED;
       knownFate = error;
@@ -77,7 +116,7 @@ function newDefer(promise) {
       fulfillmentHandlers.push(handler);
     } else if (status === FULFILLED) {
       process.nextTick(function () {
-        handler(knownFate);
+        handler(status, knownFate);
       });
     }
   };
@@ -87,7 +126,7 @@ function newDefer(promise) {
       rejectionHandlers.push(handler);
     } else if (status === REJECTED) {
       process.nextTick(function () {
-        handler(knownFate);
+        handler(status, knownFate);
       });
     }
   };
@@ -99,7 +138,7 @@ exports.Promise = Promise;
 
 
 function wrapHandler(handler, promise, resolve, reject) {
-  return function (state, fate) {
+  return function wrappedHandler(state, fate) {
     var x
     try {
       x = handler(fate);
@@ -138,11 +177,11 @@ function commitPromise(promise, resolve, reject, x) {
 
     if (typeof then === 'function') {
       try {
-        then.call(x, function (y) {
+        then.call(x, function resolvePromise(y) {
           if (resolved) return;
           resolved = true;
           commitPromise(promise, resolve, reject, y);
-        }, function (r) {
+        }, function rejectPromise(r) {
           if (resolved) return;
           resolved = true;
           reject(r);
@@ -155,3 +194,8 @@ function commitPromise(promise, resolve, reject, x) {
   }
   resolve(x);
 }
+
+var uid = (function () {
+  count = 0;
+  return function () { return count += 1; }
+}())
