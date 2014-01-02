@@ -5,7 +5,6 @@ var FULFILLED = 'fulfilled'
 
 function Promise(block) {
   var deferred = newDefer(this)
-  this.deferred = deferred;
 
   this.then = function (onFulfilled, onRejected) {
     var resolveNext, rejectNext
@@ -52,16 +51,6 @@ function newDefer(promise) {
     , knownFate
     , fulfillmentHandlers = []
     , rejectionHandlers = []
-
-  self.id = uid();
-
-  self.valueOf = function deferred_valueOf() {
-    return knownFate;
-  };
-
-  self.status = function deferred_status() {
-    return status;
-  };
 
   self.resolve = function deferred_resolve(value) {
     if (value && (typeof value === 'object' || typeof value === 'function')) {
@@ -194,8 +183,3 @@ function commitPromise(promise, resolve, reject, x) {
   }
   resolve(x);
 }
-
-var uid = (function () {
-  count = 0;
-  return function () { return count += 1; }
-}())
