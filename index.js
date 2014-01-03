@@ -15,16 +15,20 @@ function Promise(block) {
     });
 
     ifFunction(onFulfilled, function () {
-      return deferred.onFulfilled(wrapHandler(onFulfilled, resolveNext, rejectNext));
+      return deferred.onFulfilled(wrapHandler(onFulfilled));
     }, function () {
-      return deferred.onFulfilled(wrapProxy(resolveNext));
+      return deferred.onFulfilled(resolveNext);
     });
 
     ifFunction(onRejected, function () {
-      return deferred.onRejected(wrapHandler(onRejected, resolveNext, rejectNext));
+      return deferred.onRejected(wrapHandler(onRejected));
     }, function () {
-      return deferred.onRejected(wrapProxy(rejectNext));
+      return deferred.onRejected(rejectNext);
     })
+
+    function wrapHandler(handler) {
+      return tryCatch(handler, resolveNext, rejectNext);
+    }
 
     return promise;
   };
@@ -33,20 +37,19 @@ function Promise(block) {
 }
 
 Promise.resolve = function (value) {
-  var promise = new Promise(function (resolve, reject) {
+  return new Promise(function (resolve, reject) {
     resolve(value);
   });
-  return promise;
 };
 
 Promise.reject = function (error) {
-  var promise = new Promise(function (resolve, reject) {
+  return new Promise(function (resolve, reject) {
     reject(error);
   });
-  return promise;
 };
 
 exports.Promise = Promise;
+
 
 function newDefer(promise) {
   var self = Object.create(null)
@@ -99,25 +102,6 @@ function newDefer(promise) {
 }
 
 
-function wrapHandler(handler, resolve, reject) {
-  return function wrappedHandler(fate) {
-    var x
-    try {
-      x = handler(fate);
-    } catch (err) {
-      reject(err);
-      return;
-    }
-    resolve(x);
-  }
-}
-
-function wrapProxy(next) {
-  return function (fate) {
-    next(fate);
-  };
-}
-
 function resolveValue(x, promise, resolve, reject) {
   var invokeResolve = invoke(resolve, [x])
 
@@ -166,8 +150,22 @@ function resolveValue(x, promise, resolve, reject) {
   return ifSameObject(x, promise, rejectWithSameObject, checkIsPromise);
 }
 
+
 function ifIsPromise(x, success, reject) {
   return ifInstanceOf(x, Promise, success, reject);
+}
+
+function tryCatch(func, resolve, reject) {
+  return function (val) {
+    var x
+    try {
+      x = func(val);
+    } catch (err) {
+      reject(err);
+      return;
+    }
+    resolve(x);
+  }
 }
 
 function ifInstanceOf(x, y, success, reject) {
