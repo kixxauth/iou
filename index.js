@@ -135,7 +135,7 @@ function wrapHandler(handler, promise, resolve, reject) {
       reject(err);
       return;
     }
-    commitPromise(promise, resolve, reject, x);
+    commitPromise(x, promise, resolve, reject);
   }
 }
 
@@ -145,7 +145,7 @@ function wrapProxy(next) {
   };
 }
 
-function commitPromise(promise, resolve, reject, x) {
+function commitPromise(x, promise, resolve, reject) {
   if (x === promise) {
     reject(new TypeError("promise === x"));
     return;
@@ -169,7 +169,7 @@ function commitPromise(promise, resolve, reject, x) {
         then.call(x, function resolvePromise(y) {
           if (resolved) return;
           resolved = true;
-          commitPromise(promise, resolve, reject, y);
+          commitPromise(y, promise, resolve, reject);
         }, function rejectPromise(r) {
           if (resolved) return;
           resolved = true;
