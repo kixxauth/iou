@@ -15,12 +15,12 @@ function Promise(block) {
     });
 
     if (typeof onFulfilled === 'function') {
-      deferred.onFulfilled(wrapHandler(onFulfilled, promise, resolveNext, rejectNext));
+      deferred.onFulfilled(wrapHandler(onFulfilled, resolveNext, rejectNext));
     } else {
       deferred.onFulfilled(wrapProxy(resolveNext));
     }
     if (typeof onRejected === 'function') {
-      deferred.onRejected(wrapHandler(onRejected, promise, resolveNext, rejectNext));
+      deferred.onRejected(wrapHandler(onRejected, resolveNext, rejectNext));
     } else {
       deferred.onRejected(wrapProxy(rejectNext));
     }
@@ -53,40 +53,16 @@ function newDefer(promise) {
     , rejectionHandlers = []
 
   self.resolve = function deferred_resolve(value) {
-    if (value && (typeof value === 'object' || typeof value === 'function')) {
-      var then, resolved = false
-      try {
-        then = value.then;
-      } catch (err) {
-        self.reject(err);
-        return;
-      }
-      if (typeof then === 'function') {
-        try {
-          then.call(value, function resolvePromise(y) {
-            if (resolved) return;
-            resolved = true;
-            self.resolve(y);
-          }, function rejectPromise(r) {
-            if (resolved) return;
-            resolved = true;
-            self.reject(r);
-          });
-        } catch (err) {
-          if (!resolved) self.reject(err);
-        }
-        return;
-      }
-    }
-
-    process.nextTick(function resolveNextTick() {
-      if (status !== PENDING) return;
-      status = FULFILLED;
-      knownFate = value;
-      fulfillmentHandlers.forEach(function (handler) {
-        handler(status, knownFate);
+    commitPromise(value, promise, function (value) {
+      process.nextTick(function resolveNextTick() {
+        if (status !== PENDING) return;
+        status = FULFILLED;
+        knownFate = value;
+        fulfillmentHandlers.forEach(function (handler) {
+          handler(status, knownFate);
+        });
       });
-    });
+    }, self.reject);
   };
 
   self.reject = function deferred_reject(error) {
@@ -126,7 +102,7 @@ function newDefer(promise) {
 exports.Promise = Promise;
 
 
-function wrapHandler(handler, promise, resolve, reject) {
+function wrapHandler(handler, resolve, reject) {
   return function wrappedHandler(state, fate) {
     var x
     try {
@@ -135,7 +111,7 @@ function wrapHandler(handler, promise, resolve, reject) {
       reject(err);
       return;
     }
-    commitPromise(x, promise, resolve, reject);
+    resolve(x);
   }
 }
 
