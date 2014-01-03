@@ -122,15 +122,24 @@ function wrapProxy(next) {
 }
 
 function commitPromise(x, promise, resolve, reject) {
-  if (x === promise) {
-    reject(new TypeError("promise === x"));
-    return;
+
+  function rejectWithSameObject() {
+    return reject(new TypeError("promise === value"));
   }
-  if (x instanceof Promise) {
-    x.then(resolve, reject);
-    return;
+
+  function checkIsPromise() {
+    return ifInstanceOf(x, Promise, inheritState, checkIsThenable);
   }
-  if (x && (typeof x === 'object' || typeof x === 'function')) {
+
+  function inheritState() {
+    return x.then(resolve, reject);
+  }
+
+  function checkIsThenable() {
+    return ifObjectOrFunction(x, dereferenceThenable, invoke(resolve, [x]));
+  }
+
+  function dereferenceThenable() {
     var then, resolved = false
 
     try {
@@ -142,11 +151,11 @@ function commitPromise(x, promise, resolve, reject) {
 
     if (typeof then === 'function') {
       try {
-        then.call(x, function resolvePromise(y) {
+        then.call(x, function (y) {
           if (resolved) return;
           resolved = true;
           commitPromise(y, promise, resolve, reject);
-        }, function rejectPromise(r) {
+        }, function (r) {
           if (resolved) return;
           resolved = true;
           reject(r);
@@ -154,8 +163,38 @@ function commitPromise(x, promise, resolve, reject) {
       } catch (err) {
         if (!resolved) reject(err);
       }
-      return;
+    } else {
+      resolve(x);
     }
   }
-  resolve(x);
+
+  return ifSameObject(x, promise, rejectWithSameObject, checkIsPromise);
 }
+
+function ifInstanceOf(x, y, success, reject) {
+  return ifCondition(x instanceof y, success, reject);
+}
+
+function ifSameObject(x, y, success, reject) {
+  return ifCondition(x === y, success, reject)
+}
+
+function ifObjectOrFunction(x, success, reject) {
+  var guard = (x && (typeof x === 'object' || typeof x === 'function'))
+  return ifCondition(guard, success, reject);
+}
+
+function ifCondition(guard, success, reject) {
+  if (guard) {
+    return success();
+  }
+  return reject();
+}
+
+function invoke(func, args, context) {
+  return function () {
+    return func.apply(context || null, args);
+  };
+}
+
+function noop() {}
