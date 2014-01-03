@@ -14,16 +14,17 @@ function Promise(block) {
       rejectNext = reject;
     });
 
-    if (typeof onFulfilled === 'function') {
-      deferred.onFulfilled(wrapHandler(onFulfilled, resolveNext, rejectNext));
-    } else {
-      deferred.onFulfilled(wrapProxy(resolveNext));
-    }
-    if (typeof onRejected === 'function') {
-      deferred.onRejected(wrapHandler(onRejected, resolveNext, rejectNext));
-    } else {
-      deferred.onRejected(wrapProxy(rejectNext));
-    }
+    ifFunction(onFulfilled, function () {
+      return deferred.onFulfilled(wrapHandler(onFulfilled, resolveNext, rejectNext));
+    }, function () {
+      return deferred.onFulfilled(wrapProxy(resolveNext));
+    });
+
+    ifFunction(onRejected, function () {
+      return deferred.onRejected(wrapHandler(onRejected, resolveNext, rejectNext));
+    }, function () {
+      return deferred.onRejected(wrapProxy(rejectNext));
+    })
 
     return promise;
   };
@@ -45,6 +46,8 @@ Promise.reject = function (error) {
   return promise;
 };
 
+exports.Promise = Promise;
+
 function newDefer(promise) {
   var self = Object.create(null)
     , status = PENDING
@@ -52,54 +55,48 @@ function newDefer(promise) {
     , fulfillmentHandlers = []
     , rejectionHandlers = []
 
-  self.resolve = function deferred_resolve(value) {
-    commitPromise(value, promise, function (value) {
-      process.nextTick(function resolveNextTick() {
+  self.resolve = function (value) {
+    var resolve = commit(fulfillmentHandlers, FULFILLED)
+    resolveValue(value, promise, resolve, self.reject);
+  };
+
+  self.reject = commit(rejectionHandlers, REJECTED);
+
+  self.onFulfilled = addHandler(fulfillmentHandlers, FULFILLED);
+
+  self.onRejected = addHandler(rejectionHandlers, REJECTED);
+
+  function addHandler(handlers, expect) {
+    return function (handler) {
+      if (status === PENDING) {
+        handlers.push(handler);
+      } else if (status === expect) {
+        queue(handler);
+      }
+    };
+  }
+
+  function queue(handler) {
+    process.nextTick(function () {
+      handler(status, knownFate);
+    });
+  }
+
+  function commit(handlers, committedStatus) {
+    return function (fate) {
+      return process.nextTick(function () {
         if (status !== PENDING) return;
-        status = FULFILLED;
-        knownFate = value;
-        fulfillmentHandlers.forEach(function (handler) {
+        status = committedStatus;
+        knownFate = fate;
+        handlers.forEach(function (handler) {
           handler(status, knownFate);
         });
       });
-    }, self.reject);
-  };
-
-  self.reject = function deferred_reject(error) {
-    process.nextTick(function rejectNextTick() {
-      if (status !== PENDING) return;
-      status = REJECTED;
-      knownFate = error;
-      rejectionHandlers.forEach(function (handler) {
-        handler(status, knownFate);
-      });
-    });
-  };
-
-  self.onFulfilled = function (handler) {
-    if (status === PENDING) {
-      fulfillmentHandlers.push(handler);
-    } else if (status === FULFILLED) {
-      process.nextTick(function () {
-        handler(status, knownFate);
-      });
-    }
-  };
-
-  self.onRejected = function (handler) {
-    if (status === PENDING) {
-      rejectionHandlers.push(handler);
-    } else if (status === REJECTED) {
-      process.nextTick(function () {
-        handler(status, knownFate);
-      });
-    }
-  };
+    };
+  }
 
   return self;
 }
-
-exports.Promise = Promise;
 
 
 function wrapHandler(handler, resolve, reject) {
@@ -121,7 +118,7 @@ function wrapProxy(next) {
   };
 }
 
-function commitPromise(x, promise, resolve, reject) {
+function resolveValue(x, promise, resolve, reject) {
   var invokeResolve = invoke(resolve, [x])
 
   function rejectWithSameObject() {
@@ -155,7 +152,7 @@ function commitPromise(x, promise, resolve, reject) {
       then.call(x, function (y) {
         if (resolved) return;
         resolved = true;
-        commitPromise(y, promise, resolve, reject);
+        resolveValue(y, promise, resolve, reject);
       }, function (r) {
         if (resolved) return;
         resolved = true;
