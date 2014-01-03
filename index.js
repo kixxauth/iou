@@ -122,6 +122,7 @@ function wrapProxy(next) {
 }
 
 function commitPromise(x, promise, resolve, reject) {
+  var invokeResolve = invoke(resolve, [x])
 
   function rejectWithSameObject() {
     return reject(new TypeError("promise === value"));
@@ -136,39 +137,40 @@ function commitPromise(x, promise, resolve, reject) {
   }
 
   function checkIsThenable() {
-    return ifObjectOrFunction(x, dereferenceThenable, invoke(resolve, [x]));
+    return ifObjectOrFunction(x, dereferenceThenable, invokeResolve);
   }
 
   function dereferenceThenable() {
-    var then, resolved = false
+    return dereference(x, 'then', checkThenIsFunction, reject);
+  }
+
+  function checkThenIsFunction(then) {
+    return ifFunction(then, invoke(resolveThenable, [then]), invokeResolve);
+  }
+
+  function resolveThenable(then) {
+    var resolved = false
 
     try {
-      then = x.then;
+      then.call(x, function (y) {
+        if (resolved) return;
+        resolved = true;
+        commitPromise(y, promise, resolve, reject);
+      }, function (r) {
+        if (resolved) return;
+        resolved = true;
+        reject(r);
+      });
     } catch (err) {
-      reject(err);
-      return;
-    }
-
-    if (typeof then === 'function') {
-      try {
-        then.call(x, function (y) {
-          if (resolved) return;
-          resolved = true;
-          commitPromise(y, promise, resolve, reject);
-        }, function (r) {
-          if (resolved) return;
-          resolved = true;
-          reject(r);
-        });
-      } catch (err) {
-        if (!resolved) reject(err);
-      }
-    } else {
-      resolve(x);
+      if (!resolved) reject(err);
     }
   }
 
   return ifSameObject(x, promise, rejectWithSameObject, checkIsPromise);
+}
+
+function ifIsPromise(x, success, reject) {
+  return ifInstanceOf(x, Promise, success, reject);
 }
 
 function ifInstanceOf(x, y, success, reject) {
@@ -176,7 +178,11 @@ function ifInstanceOf(x, y, success, reject) {
 }
 
 function ifSameObject(x, y, success, reject) {
-  return ifCondition(x === y, success, reject)
+  return ifCondition(x === y, success, reject);
+}
+
+function ifFunction(x, success, reject) {
+  return ifCondition(typeof x === 'function', success, reject);
 }
 
 function ifObjectOrFunction(x, success, reject) {
@@ -189,6 +195,16 @@ function ifCondition(guard, success, reject) {
     return success();
   }
   return reject();
+}
+
+function dereference(x, name, success, reject) {
+  var ref
+  try {
+    ref = x[name];
+  } catch (err) {
+    return reject(err);
+  }
+  return success(ref);
 }
 
 function invoke(func, args, context) {
