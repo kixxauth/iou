@@ -4,10 +4,12 @@ var FULFILLED = 'fulfilled'
 
 
 function Promise(block) {
-  var deferred = newDefer(this)
+  this.deferred = newDefer(this)
 
   this.then = function (onFulfilled, onRejected) {
-    var resolveNext, rejectNext
+    var self = this
+      , resolveNext
+      , rejectNext
 
     var promise = new Promise(function (resolve, reject) {
       resolveNext = resolve;
@@ -15,15 +17,15 @@ function Promise(block) {
     });
 
     ifFunction(onFulfilled, function () {
-      return deferred.onFulfilled(wrapHandler(onFulfilled));
+      return self.deferred.onFulfilled(wrapHandler(onFulfilled));
     }, function () {
-      return deferred.onFulfilled(resolveNext);
+      return self.deferred.onFulfilled(resolveNext);
     });
 
     ifFunction(onRejected, function () {
-      return deferred.onRejected(wrapHandler(onRejected));
+      return self.deferred.onRejected(wrapHandler(onRejected));
     }, function () {
-      return deferred.onRejected(rejectNext);
+      return self.deferred.onRejected(rejectNext);
     })
 
     function wrapHandler(handler) {
@@ -33,7 +35,7 @@ function Promise(block) {
     return promise;
   };
 
-  block(deferred.resolve, deferred.reject);
+  block(this.deferred.resolve, this.deferred.reject);
 }
 
 Promise.resolve = function (value) {
@@ -114,7 +116,8 @@ function resolveValue(x, promise, resolve, reject) {
   }
 
   function inheritState() {
-    return x.then(resolve, reject);
+    x.deferred.onFulfilled(resolve);
+    x.deferred.onRejected(reject);
   }
 
   function checkIsThenable() {
