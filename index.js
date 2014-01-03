@@ -78,7 +78,7 @@ function newDefer(promise) {
 
   function queue(handler) {
     process.nextTick(function () {
-      handler(status, knownFate);
+      handler(knownFate);
     });
   }
 
@@ -89,7 +89,7 @@ function newDefer(promise) {
         status = committedStatus;
         knownFate = fate;
         handlers.forEach(function (handler) {
-          handler(status, knownFate);
+          handler(knownFate);
         });
       });
     };
@@ -100,7 +100,7 @@ function newDefer(promise) {
 
 
 function wrapHandler(handler, resolve, reject) {
-  return function wrappedHandler(state, fate) {
+  return function wrappedHandler(fate) {
     var x
     try {
       x = handler(fate);
@@ -113,7 +113,7 @@ function wrapHandler(handler, resolve, reject) {
 }
 
 function wrapProxy(next) {
-  return function (state, fate) {
+  return function (fate) {
     next(fate);
   };
 }
