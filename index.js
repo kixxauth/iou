@@ -4,7 +4,8 @@ var FULFILLED = 'fulfilled'
 
 
 function Promise(block) {
-  this.deferred = newDefer(this)
+  this.deferred = newDeferred(this);
+  this.isPromise = true;
 
   this.then = function (onFulfilled, onRejected) {
     var self = this
@@ -35,6 +36,13 @@ function Promise(block) {
     return promise;
   };
 
+  this.fail = function (onRejected) {
+    return this.then(null, onRejected);
+  };
+
+  this.failure = this.fail;
+
+  Object.freeze(this);
   block(this.deferred.resolve, this.deferred.reject);
 }
 
@@ -50,22 +58,66 @@ Promise.reject = function (error) {
   });
 };
 
+Promise.all = function (promises) {
+  if (!Array.isArray(promises)) {
+    promises = Array.prototype.slice.call(arguments);
+  }
+
+  var deferred = exports.newDefer()
+    , values = []
+    , count = 0
+    , expected = promises.length
+
+  promises.forEach(function (promise, index) {
+    promise.then(function (val) {
+      values[index] = val;
+      if ((count += 1) === expected) {
+        deferred.keep(values);
+      }
+    }, deferred.fail);
+  });
+
+  return deferred.promise
+};
+
 exports.Promise = Promise;
 
 
-function newDefer(promise) {
+exports.newDefer = function () {
+  var keep, fail
+  var promise = new Promise(function (resolve, reject) {
+    fail = reject;
+    keep = resolve;
+  });
+
+  promise.deferred.keep = keep;
+  promise.deferred.fail = fail;
+  return promise.deferred;
+};
+
+exports.waitFor = Promise.all;
+
+
+function newDeferred(promise) {
   var self = Object.create(null)
     , status = PENDING
     , knownFate
     , fulfillmentHandlers = []
     , rejectionHandlers = []
 
+  self.promise = promise;
+
   self.resolve = function (value) {
     var resolve = commit(fulfillmentHandlers, FULFILLED)
     resolveValue(value, promise, resolve, self.reject);
+    return self;
   };
+  self.keep = self.resolve;
 
-  self.reject = commit(rejectionHandlers, REJECTED);
+  self.reject = function (reason) {
+    commit(rejectionHandlers, REJECTED)(reason);
+    return self;
+  };
 
   self.onFulfilled = addHandler(fulfillmentHandlers, FULFILLED);
 
@@ -150,7 +202,11 @@ function resolveValue(x, promise, resolve, reject) {
     }
   }
 
-  return ifSameObject(x, promise, rejectWithSameObject, checkIsPromise);
+  ifInstanceOf(x, Error, function () {
+    return reject(x);
+  }, function () {
+    return ifSameObject(x, promise, rejectWithSameObject, checkIsPromise);
+  });
 }
 
 

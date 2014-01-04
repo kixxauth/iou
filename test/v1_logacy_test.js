@@ -516,7 +516,7 @@ exports["Handlers can return a promise for a value. (async)"] = function (test) 
 
   var d = IOU.newDefer()
     , err = new Error('some err')
-    , val = {}
+    , val = {sentinal: true}
 
   process.nextTick(function () {
     d.keep(1);
