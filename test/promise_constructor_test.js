@@ -1,5 +1,7 @@
 var IOU = require('../index')
 
+var ERROR = new Error('TEST ERROR')
+
 exports["Promise instance from Promise constructor"] = {
   setUp: function(done) {
     this.Promise = IOU.Promise
@@ -35,6 +37,26 @@ exports["Promise instance from Promise constructor"] = {
   "constructor is Promise": function (test) {
     test.strictEqual(this.promise.constructor, this.Promise);
     return test.done();
+  },
+
+  "if an error is thrown in the code block passed to Promise, it rejects": function (test) {
+    test.expect(1);
+
+    function onSuccess() {
+      test.ok(false, 'onSuccess() should not be called');
+      test.done();
+      return;
+    }
+
+    function onFailure(err) {
+      test.strictEqual(err, ERROR);
+      test.done();
+      return;
+    }
+
+    new this.Promise(function () {
+      throw ERROR;
+    }).then(onSuccess, onFailure);
   }
 
 };

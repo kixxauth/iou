@@ -4,6 +4,14 @@ var FULFILLED = 'fulfilled'
 
 
 function Promise(block) {
+  ifInstanceOf(this, Promise, noop, function () {
+    throw new TypeError("Failed to construct 'Promise': Please use the 'new' operator, this object constructor cannot be called as a function.")
+  });
+
+  ifFunction(block, noop, function () {
+    throw new TypeError("You must pass a resolver function as the first argument to the promise constructor.");
+  });
+
   this.deferred = newDeferred(this);
   this.isPromise = true;
 
@@ -43,7 +51,12 @@ function Promise(block) {
   this.failure = this.fail;
 
   Object.freeze(this);
-  block(this.deferred.resolve, this.deferred.reject);
+
+  try {
+    block(this.deferred.resolve, this.deferred.reject);
+  } catch (err) {
+    this.deferred.reject(err);
+  }
 }
 
 Promise.resolve = function (value) {
