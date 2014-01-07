@@ -89,6 +89,7 @@ Promise.all = function (promises) {
     , expected = promises.length
 
   promises.forEach(function (promise, index) {
+    promise = Promise.cast(promise);
     promise.then(function (val) {
       values[index] = val;
       if ((count += 1) === expected) {
