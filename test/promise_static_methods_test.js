@@ -393,6 +393,34 @@ exports["Promise.all()"] = {
     }
 
     this.all([p1, p2, p3]).then(onSuccess, onFailure);
+  },
+
+  "only the first rejection is considered": function (test) {
+    var p1, p2, p3
+
+    p1 = new this.Promise(function (resolve) {
+      setTimeout(function () { resolve(1) }, 10)
+    });
+
+    p2 = new this.Promise(function (r, reject) {
+      setTimeout(function () { reject(new Error("not considered")) }, 20)
+    });
+
+    p3 = new this.Promise(function (r, reject) {
+      setTimeout(function () { reject(ERROR) }, 1)
+    });
+
+    function onSuccess() {
+      test.ok(false, 'onSuccess() should not be called');
+      test.done();
+    }
+
+    function onFailure(err) {
+      test.strictEqual(err, ERROR);
+      test.done();
+    }
+
+    this.all([p1, p2, p3]).then(onSuccess, onFailure);
   }
 
 };
