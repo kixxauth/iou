@@ -59,6 +59,13 @@ function Promise(block) {
   }
 }
 
+Promise.cast = function (value) {
+  if (value instanceof Promise) {
+    return value;
+  }
+  return Promise.resolve(value);
+};
+
 Promise.resolve = function (value) {
   return new Promise(function (resolve, reject) {
     resolve(value);

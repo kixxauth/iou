@@ -1,9 +1,11 @@
 var IOU = require('../index')
 
+
 var DUMMY = {dummy: true}
   , SENTINEL = {sentinel: true}
   , THENABLE = function (val) { return {then: function (resolved) { resolved(val); }}; }
   , ERROR = new Error('TEST ERROR')
+
 
 exports["Promise.resolve()"] = {
   setUp: function(done) {
@@ -78,6 +80,7 @@ exports["Promise.resolve()"] = {
   }
 };
 
+
 exports["Promise.reject()"] = {
   setUp: function(done) {
     this.Promise = IOU.Promise;
@@ -150,4 +153,76 @@ exports["Promise.reject()"] = {
       
     this.reject().then(onSuccess, onFailure);
   }
+};
+
+
+exports["Promise.cast()"] = {
+  setUp: function(done) {
+    this.Promise = IOU.Promise;
+    this.cast = this.Promise.cast;
+    return done();
+  },
+
+  "return a promise from a plain object": function (test) {
+    var promise = this.cast(DUMMY);
+    test.ok(promise instanceof this.Promise, "promise instanceof Promise");
+    return test.done();
+  },
+
+  "simply returns a Promise instance": function (test) {
+    var promise1, promise2
+    promise1 = new this.Promise(function (resolve) { resolve(DUMMY); });
+    promise2 = this.cast(promise1);
+    test.strictEqual(promise1, promise2);
+    return test.done();
+  },
+
+  "creates a Promise for SENTINEL that resolves to SENTINEL": function (test) {
+    test.expect(1);
+
+    function onSuccess(val) {
+      test.strictEqual(val, SENTINEL);
+      test.done();
+    }
+
+    function onFailure() {
+      test.ok(false, 'onFailure() should not be called');
+      test.done();
+    }
+      
+    this.cast(SENTINEL).then(onSuccess, onFailure);
+  },
+
+  "creates a Promise for THENABLE which resolves to THENABLE fulfillment value": function (test) {
+    test.expect(1);
+
+    function onSuccess(val) {
+      test.strictEqual(val, SENTINEL);
+      test.done();
+    }
+
+    function onFailure() {
+      test.ok(false, 'onFailure() should not be called');
+      test.done();
+    }
+      
+    this.cast(THENABLE(SENTINEL)).then(onSuccess, onFailure);
+  },
+
+  "creates a Promise for `undefined` when no arguments": function (test) {
+    test.expect(1);
+
+    function onSuccess(val) {
+      test.strictEqual(val, undefined);
+      test.done();
+    }
+
+    function onFailure() {
+      test.ok(false, 'onFailure() should not be called');
+      test.done();
+    }
+      
+    this.cast().then(onSuccess, onFailure);
+  }
+
 };
