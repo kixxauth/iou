@@ -44,7 +44,7 @@ function Promise(block) {
     return promise;
   };
 
-  this.fail = function (onRejected) {
+  this.catch = this.fail = function (onRejected) {
     return this.then(null, onRejected);
   };
 
