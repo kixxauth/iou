@@ -83,22 +83,23 @@ Promise.all = function (promises) {
     promises = Array.prototype.slice.call(arguments);
   }
 
-  var deferred = exports.newDefer()
+  var promise
     , values = []
     , count = 0
     , expected = promises.length
 
-  promises.forEach(function (promise, index) {
-    promise = Promise.cast(promise);
-    promise.then(function (val) {
-      values[index] = val;
-      if ((count += 1) === expected) {
-        deferred.keep(values);
-      }
-    }, deferred.fail);
+  promise = new Promise(function (resolve, reject) {
+    promises.forEach(function (promise, index) {
+      Promise.cast(promise).then(function (val) {
+        values[index] = val;
+        if ((count += 1) === expected) {
+          resolve(values);
+        }
+      }, reject);
+    })
   });
 
-  return deferred.promise
+  return promise;
 };
 
 exports.Promise = Promise;
