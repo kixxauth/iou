@@ -89,12 +89,15 @@ Promise.all = function (promises) {
 
   promise = new Promise(function (resolve, reject) {
     promises.forEach(function (promise, index) {
-      Promise.cast(promise).then(function (val) {
+
+      function maybeResolve(val) {
         values[index] = val;
         if ((count += 1) === expected) {
           resolve(values);
         }
-      }, reject);
+      }
+
+      Promise.cast(promise)._proxy(maybeResolve, reject);
     })
   });
 
