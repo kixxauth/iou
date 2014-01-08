@@ -13,7 +13,6 @@ function Promise(block) {
   });
 
   this.deferred = newDeferred(this);
-  this.isPromise = true;
 
   this.then = function (onFulfilled, onRejected) {
     var self = this
@@ -44,13 +43,9 @@ function Promise(block) {
     return promise;
   };
 
-  this.catch = this.fail = function (onRejected) {
+  this.catch = function (onRejected) {
     return this.then(null, onRejected);
   };
-
-  this.failure = this.fail;
-
-  Object.freeze(this);
 
   try {
     block(this.deferred.resolve, this.deferred.reject);
