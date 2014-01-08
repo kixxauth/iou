@@ -114,8 +114,6 @@ function newDeferred(promise) {
     , fulfillmentHandlers = []
     , rejectionHandlers = []
 
-  self.promise = promise;
-
   self.resolve = function (value) {
     var resolve = commit(fulfillmentHandlers, FULFILLED)
     resolveValue(value, promise, resolve, self.reject);
