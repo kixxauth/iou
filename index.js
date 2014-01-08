@@ -23,17 +23,25 @@ function Promise(block) {
       rejectNext = reject;
     });
 
-    ifFunction(onFulfilled, function () {
+    function addFulfillmentHandler() {
       return deferred.onFulfilled(wrapHandler(onFulfilled));
-    }, function () {
-      return deferred.onFulfilled(resolveNext);
-    });
+    }
 
-    ifFunction(onRejected, function () {
+    function proxyFulfillment() {
+      return deferred.onFulfilled(resolveNext);
+    }
+
+    ifFunction(onFulfilled, addFulfillmentHandler, proxyFulfillment);
+
+    function addRejectionHandler() {
       return deferred.onRejected(wrapHandler(onRejected));
-    }, function () {
+    }
+
+    function proxyRejection() {
       return deferred.onRejected(rejectNext);
-    })
+    }
+
+    ifFunction(onRejected, addRejectionHandler, proxyRejection);
 
     function wrapHandler(handler) {
       return tryCatch(handler, resolveNext, rejectNext);

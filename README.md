@@ -10,11 +10,11 @@ There are a lot of libraries that do this already:
 * [Promise](https://github.com/then/promise)
 * [micro-promise](https://github.com/Gozala/micro-promise)
 
-but they all do a lot of other stuff too, which you may or may not want, or
-don't fully implement the new Promise object that will be available soon. IOU
-is designed to simply bring promises to Node.js in as small a package as
-possible.  There are no bells and whistles, no dependencies, just a simple API
-that should allow you to transition to the native Promise API as soon as it
+but they all do a lot of other stuff too, which you may or may not want, and
+not all of them fully implement the new Promise object that will be available
+soon. IOU is designed to simply bring promises to Node.js in as small a package
+as possible.  There are no bells and whistles, no dependencies, just a simple
+API that should allow you to transition to the native Promise API as soon as it
 arrives in Node land.
 
 ## Installation
