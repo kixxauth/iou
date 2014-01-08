@@ -12,11 +12,10 @@ function Promise(block) {
     throw new TypeError("You must pass a resolver function as the first argument to the promise constructor.");
   });
 
-  this.deferred = newDeferred(this);
+  var deferred = newDeferred(this);
 
   this.then = function (onFulfilled, onRejected) {
-    var self = this
-      , resolveNext
+    var resolveNext
       , rejectNext
 
     var promise = new Promise(function (resolve, reject) {
@@ -25,15 +24,15 @@ function Promise(block) {
     });
 
     ifFunction(onFulfilled, function () {
-      return self.deferred.onFulfilled(wrapHandler(onFulfilled));
+      return deferred.onFulfilled(wrapHandler(onFulfilled));
     }, function () {
-      return self.deferred.onFulfilled(resolveNext);
+      return deferred.onFulfilled(resolveNext);
     });
 
     ifFunction(onRejected, function () {
-      return self.deferred.onRejected(wrapHandler(onRejected));
+      return deferred.onRejected(wrapHandler(onRejected));
     }, function () {
-      return self.deferred.onRejected(rejectNext);
+      return deferred.onRejected(rejectNext);
     })
 
     function wrapHandler(handler) {
@@ -47,10 +46,15 @@ function Promise(block) {
     return this.then(null, onRejected);
   };
 
+  this._proxy = function (resolve, reject) {
+    deferred.onFulfilled(resolve);
+    deferred.onRejected(reject);
+  };
+
   try {
-    block(this.deferred.resolve, this.deferred.reject);
+    block(deferred.resolve, deferred.reject);
   } catch (err) {
-    this.deferred.reject(err);
+    deferred.reject(err);
   }
 }
 
@@ -98,21 +102,6 @@ Promise.all = function (promises) {
 };
 
 exports.Promise = Promise;
-
-
-exports.newDefer = function () {
-  var keep, fail
-  var promise = new Promise(function (resolve, reject) {
-    fail = reject;
-    keep = resolve;
-  });
-
-  promise.deferred.keep = keep;
-  promise.deferred.fail = fail;
-  return promise.deferred;
-};
-
-exports.waitFor = Promise.all;
 
 
 function newDeferred(promise) {
@@ -185,8 +174,7 @@ function resolveValue(x, promise, resolve, reject) {
   }
 
   function inheritState() {
-    x.deferred.onFulfilled(resolve);
-    x.deferred.onRejected(reject);
+    x._proxy(resolve, reject);
   }
 
   function checkIsThenable() {
