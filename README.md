@@ -255,6 +255,12 @@ function die(err) {
 promise.then(catchEmptyFile).then(console.log).catch(die);
 ```
 
+### Promise.cast()
+The `Promise.cast()` method simply takes any value as an argument, and creates
+a promise out of it.  The only difference between this method and
+`Promise.resolve()` is that if the value is already a promise, then that
+promise is returned, while `Promise.resolve()` always returns a new Promise.
+
 ### Promise.all()
 The `Promise.all()` class method collects an array of promises and returns a
 new promise that will only be resolved if all of the promises resolve. If any
