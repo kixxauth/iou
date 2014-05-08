@@ -1,7 +1,7 @@
 IOU
 ===
 
-[![NPM](https://nodei.co/npm/request.png)](https://nodei.co/npm/request/)
+[![NPM](https://nodei.co/npm/iou.png)](https://nodei.co/npm/iou/)
 
 <a href="http://promises-aplus.github.com/promises-spec">
     <img src="http://promises-aplus.github.com/promises-spec/assets/logo-small.png"
