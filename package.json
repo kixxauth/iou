@@ -8,6 +8,6 @@
 	"bugs": "https://github.com/kixxauth/iou/issues",
     "devDependencies": {
         "nodeunit": "0.8.1",
-        "promises-aplus-tests": "2.0.3"
+        "promises-aplus-tests": "2.0.4"
     }
 }
