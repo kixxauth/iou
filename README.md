@@ -3,6 +3,8 @@ IOU
 
 [![NPM](https://nodei.co/npm/iou.png)](https://nodei.co/npm/iou/)
 
+__Built by [@kixxauth](https://twitter.com/kixxauth)__
+
 <a href="http://promises-aplus.github.com/promises-spec">
     <img src="http://promises-aplus.github.com/promises-spec/assets/logo-small.png"
          align="right" alt="Promises/A+ logo" />
