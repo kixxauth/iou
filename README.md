@@ -1,6 +1,11 @@
 IOU
 ===
 
+<a href="http://promises-aplus.github.com/promises-spec">
+    <img src="http://promises-aplus.github.com/promises-spec/assets/logo-small.png"
+         align="right" alt="Promises/A+ logo" />
+</a>
+
 A JavaScript library to shim Node.js with the upcoming JavaScript Promise API.
 There are a lot of libraries that do this already:
 
