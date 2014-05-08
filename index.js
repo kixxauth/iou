@@ -127,7 +127,7 @@ function newDeferred(promise) {
     resolveValue(value, promise, resolve, self.reject);
     return self;
   };
-  self.keep = self.resolve;
+  self.resolve;
 
   self.reject = function (reason) {
     commit(rejectionHandlers, REJECTED)(reason);
