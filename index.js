@@ -86,7 +86,7 @@ Promise.reject = function (error) {
 };
 
 Promise.all = function (promises) {
-  if (!Array.isArray(promises)) {
+  if (!isArray(promises)) {
     promises = Array.prototype.slice.call(arguments);
   }
 
@@ -96,17 +96,20 @@ Promise.all = function (promises) {
     , expected = promises.length
 
   promise = new Promise(function (resolve, reject) {
-    promises.forEach(function (promise, index) {
+    var i = 0, len = promises.length
 
-      function maybeResolve(val) {
+    function resolver(index) {
+      return function (val) {
         values[index] = val;
         if ((count += 1) === expected) {
           resolve(values);
         }
-      }
+      };
+    }
 
-      Promise.cast(promise)._proxy(maybeResolve, reject);
-    })
+    for (; i < len; i += 1) {
+      Promise.cast(promises[i])._proxy(resolver(i), reject);
+    }
   });
 
   return promise;
@@ -149,21 +152,21 @@ function newDeferred(promise) {
   }
 
   function queue(handler) {
-    process.nextTick(function () {
+    setTimeout(function () {
       handler(knownFate);
-    });
+    }, 1);
   }
 
   function commit(handlers, committedStatus) {
     return function (fate) {
-      return process.nextTick(function () {
+      setTimeout(function () {
         if (status !== PENDING) return;
         status = committedStatus;
         knownFate = fate;
         handlers.forEach(function (handler) {
           handler(knownFate);
         });
-      });
+      }, 1);
     };
   }
 
@@ -227,6 +230,20 @@ function resolveValue(x, promise, resolve, reject) {
 function ifIsPromise(x, success, reject) {
   return ifInstanceOf(x, Promise, success, reject);
 }
+
+var isArray = (function () {
+  var isArray
+
+  if (typeof Array.isArray === 'function') {
+    isArray = Array.isArray;
+  } else {
+    isArray = function (x) {
+      return Object.prototype.toString.call(x) === '[object Array]';
+    }
+  }
+
+  return isArray;
+}());
 
 function tryCatch(func, resolve, reject) {
   return function (val) {
