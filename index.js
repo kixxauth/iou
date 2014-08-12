@@ -1,6 +1,10 @@
+(function () {
+
+if (typeof Promise !== 'function' || !(Promise.resolve && Promise.reject)) {
+
 var FULFILLED = 'fulfilled'
-  , REJECTED = 'rejected'
-  , PENDING = 'pending'
+, REJECTED = 'rejected'
+, PENDING = 'pending'
 
 
 function Promise(block) {
@@ -115,7 +119,11 @@ Promise.all = function (promises) {
   return promise;
 };
 
-exports.Promise = Promise;
+if (typeof window !== 'undefined') {
+  window.Promise = Promise;
+} else {
+  exports.Promise = Promise;
+}
 
 
 function newDeferred(promise) {
@@ -299,3 +307,6 @@ function invoke(func, args, context) {
 }
 
 function noop() {}
+
+}
+}());
