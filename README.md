@@ -20,12 +20,13 @@ A JavaScript library to shim Node.js and the browsers with the upcoming JavaScri
 
 but they all do a lot of other stuff too, which you may or may not want, and
 not all of them fully implement the new Promise object that will be available
-soon. IOU is designed to simply bring promises to Node.js in as small a package
+soon. IOU is designed to simply bring promises to you in as small a package
 as possible.  There are no bells and whistles, no dependencies, just a simple
 API that should allow you to transition to the native Promise API as soon as it
-arrives in Node land.
+arrives in on your favorite platform.
 
 ## Installation
+### Node.js
 The most common use of IOU is to use it as a library. In that case, just
 include it in your Node.js project by adding a line for IOU in your
 `pacakge.json`. For more information about your `package.json` file, you should
@@ -36,6 +37,11 @@ Alternatively, you can quickly install IOU for use in a project by running
 	npm install iou
 
 which will install iou in your `node_modules/` folder.
+
+### Browsers
+Save https://raw.githubusercontent.com/kixxauth/iou/master/index.js from the web, and name it something like `iou.js`. Then just include it with a script tag, or wrap it up in your favorite build process.
+
+Sorry, there is no Bower or other package management or minification tool available. If you'd like one, please create an issue, or even a pull request :)
 
 ## Examples
 
