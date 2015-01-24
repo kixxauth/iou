@@ -421,6 +421,15 @@ exports["Promise.all()"] = {
     }
 
     this.all([p1, p2, p3]).then(onSuccess, onFailure);
+  },
+
+  "resolves an empty Array as an empty Array": function (test) {
+    var toString = Object.prototype.toString;
+    this.all([]).then(function (result) {
+      test.ok(toString.call(result) === '[object Array]', "Result is an Array");
+      test.equal(result.length, 0, "Result is empty");
+      test.done();
+    });
   }
 
 };

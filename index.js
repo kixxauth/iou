@@ -111,9 +111,13 @@ Promise.all = function (promises) {
       };
     }
 
-    for (; i < len; i += 1) {
-      Promise.cast(promises[i])._proxy(resolver(i), reject);
-    }
+    ifCondition(len === 0, function () {
+      resolve(values);
+    }, function () {
+      for (; i < len; i += 1) {
+        Promise.cast(promises[i])._proxy(resolver(i), reject);
+      }
+    });
   });
 
   return promise;
